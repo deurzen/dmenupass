@@ -1,8 +1,18 @@
 #!/usr/bin/env bash
-shopt -s nullglob globstar
 
 arg="$1"
-[[ $arg == "--copy" ]] && prompt="Copy:" || prompt="Autotype:"
+if [[ $arg == "--copy" ]]; then
+	prompt="Copy:"
+	copy=1
+elif [[ $arg == "--print" ]]; then
+	prompt="Print:";
+	print=1
+else
+	prompt="Autotype:"
+	autotype=1
+fi
+
+shopt -s nullglob globstar
 
 username_delim='user'
 password_delim='pass'
@@ -22,7 +32,8 @@ __init__() {
 	password_itemlist=( "${password_itemlist[@]%.gpg}" )
 	password_item=$(printf '%s\n' "${password_itemlist[@]}" | dmenu -p "$prompt" "$@")
 	[[ -n $password_item ]] || exit
-	[[ $arg == "--copy" ]] && __copy__ 2>/dev/null && exit
+	[ ! -z "$copy" ] && { __copy__ 2>/dev/null; exit; }
+	[ ! -z "$print" ] && { __print__ 2>/dev/null; exit; }
 	password_itemfile="$prefix/${password_item}.gpg"
 
 	while IFS= read -r line
@@ -87,6 +98,12 @@ __run__() {
 __copy__() {
 	password=$(pass $password_item | grep pass | awk '{print $2}')
 	echo -n "$password" | xsel -b
+	unset -v password
+}
+
+__print__() {
+	password=$(pass $password_item | grep pass | awk '{print $2}')
+	echo -n "$password"
 	unset -v password
 }
 
